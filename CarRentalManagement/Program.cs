@@ -34,6 +34,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
@@ -45,7 +46,15 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseMigrationsEndPoint();
+    using var scope = app.Services.CreateScope();
+
+    var adminPassword =
+        app.Configuration["SeedAdmin:Password"]
+        ?? throw new InvalidOperationException(
+            "Configure SeedAdmin:Password in user secrets.");
+
+    await IdentitySeeder.SeedAsync(
+        scope.ServiceProvider, adminPassword);
 }
 else
 {
